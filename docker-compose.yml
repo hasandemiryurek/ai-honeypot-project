@@ -1,0 +1,63 @@
+
+
+# AI-Powered Smart Contract Honeypot — Full Stack
+# Tamamen yerel çalışır, API key gerekmez.
+# docker compose up --build
+
+services:
+  hardhat-node:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: >
+      sh -c "npm install --prefer-offline 2>/dev/null || npm install &&
+             npx hardhat node --hostname 0.0.0.0"
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          wget -qO- --post-data='{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+          --header='Content-Type: application/json'
+          http://localhost:8545 | grep -q result
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  deployer:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - shared-data:/shared
+    depends_on:
+      hardhat-node:
+        condition: service_healthy
+    environment:
+      - SHARED_DIR=/shared
+    command: >
+      sh -c "npx hardhat compile &&
+             npx hardhat run scripts/deploy.js --network localhost"
+    restart: "no"
+
+  ai-agent:
+    build: .
+    volumes:
+      - .:/app
+      - shared-data:/shared
+    depends_on:
+      - deployer
+    environment:
+      - RPC_URL=http://hardhat-node:8545
+      - SHARED_DIR=/shared
+      - POLL_INTERVAL=2
+    restart: unless-stopped
+
+volumes:
+  node_modules:
+  shared-data:

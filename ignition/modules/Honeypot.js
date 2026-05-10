@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { parseEther } from "ethers";
 
-export default buildModule("HoneypotModule", (m) => {
-  const honeypot = m.contract("Honeypot"); // contracts/Honeypot.sol'u bulur
-
+export default buildModule("HoneypotAdvanced", (m) => {
+  const honeypot = m.contract("HoneypotAdvanced", [], { value: parseEther("1.0") });
   return { honeypot };
 });
