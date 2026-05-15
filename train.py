@@ -70,10 +70,14 @@ def main():
         class_weight="balanced", random_state=42, n_jobs=-1,
     )
 
-    cv     = StratifiedKFold(n_splits=min(5, min(pd.Series(y).value_counts())),
-                              shuffle=True, random_state=42)
-    scores = cross_val_score(model, X, y, cv=cv, scoring="f1_weighted")
-    print(f"Cross-val F1 (weighted): {scores.mean():.3f} +/- {scores.std():.3f}\n")
+    min_class_count = int(pd.Series(y).value_counts().min())
+    n_splits = min(5, min_class_count)
+    if n_splits >= 2:
+     cv     = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+     scores = cross_val_score(model, X, y, cv=cv, scoring="f1_weighted")
+     print(f"Cross-val F1 (weighted): {scores.mean():.3f} +/- {scores.std():.3f}\n")
+    else:
+     print("Cross-validation skipped: some classes have only 1 sample\n")
 
     model.fit(X, y)
     y_pred = model.predict(X)
